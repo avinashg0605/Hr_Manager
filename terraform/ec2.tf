@@ -1,6 +1,21 @@
-resource "aws_key_pair" "key_pair" {
+# resource "aws_key_pair" "key_pair" {
+#   key_name   = "hr_manager"
+#   public_key = file("~/.ssh/hr_manager.pub")
+# }
+
+resource "tls_private_key" "generated" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated" {
   key_name   = "hr_manager"
-  public_key = file("~/.ssh/hr_manager.pub")
+  public_key = tls_private_key.generated.public_key_openssh
+}
+
+resource "local_file" "private_key" {
+  content  = tls_private_key.generated.private_key_pem
+  filename = "hr_manager.pem"
 }
 # =========================================
 # SECURITY GROUPS
