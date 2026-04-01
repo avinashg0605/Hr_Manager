@@ -18,6 +18,13 @@ CREATE TABLE users (
 );
 
 -- ==========================================
+-- INSERT USERS (IMPORTANT FOR FK)
+-- ==========================================
+INSERT INTO users (id, username, email, password, role) VALUES
+(1, 'admin', 'admin@company.com', 'password', 'admin'),
+(2, 'john_user', 'john@company.com', 'password', 'employee');
+
+-- ==========================================
 -- EMPLOYEES TABLE
 -- ==========================================
 CREATE TABLE employees (
@@ -38,6 +45,16 @@ CREATE TABLE employees (
 );
 
 -- ==========================================
+-- INSERT EMPLOYEES
+-- ==========================================
+INSERT INTO employees (user_id, first_name, last_name, email, phone, position, department, hire_date, salary, status) VALUES
+(2, 'John', 'Doe', 'john.doe@company.com', '+1234567890', 'Software Engineer', 'IT', '2023-01-15', 60000.00, 'active'),
+(NULL, 'Jane', 'Smith', 'jane.smith@company.com', '+1234567891', 'HR Specialist', 'Human Resources', '2023-02-20', 55000.00, 'active'),
+(NULL, 'Bob', 'Johnson', 'bob.johnson@company.com', '+1234567892', 'Product Manager', 'Product', '2023-03-10', 75000.00, 'active'),
+(NULL, 'Alice', 'Williams', 'alice.williams@company.com', '+1234567893', 'UX Designer', 'Design', '2023-04-05', 58000.00, 'active'),
+(NULL, 'Charlie', 'Brown', 'charlie.brown@company.com', '+1234567894', 'Sales Rep', 'Sales', '2023-05-12', 52000.00, 'inactive');
+
+-- ==========================================
 -- LEAVES TABLE
 -- ==========================================
 CREATE TABLE leaves (
@@ -51,6 +68,16 @@ CREATE TABLE leaves (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );
+
+-- ==========================================
+-- INSERT LEAVES
+-- ==========================================
+INSERT INTO leaves (employee_id, leave_type, start_date, end_date, reason, status) VALUES
+(1, 'vacation', '2024-03-01', '2024-03-05', 'Family vacation', 'approved'),
+(1, 'sick', '2024-02-10', '2024-02-11', 'Flu', 'approved'),
+(2, 'personal', '2024-03-15', '2024-03-15', 'Personal appointment', 'pending'),
+(3, 'vacation', '2024-04-01', '2024-04-07', 'Spring break', 'pending'),
+(4, 'sick', '2024-02-20', '2024-02-22', 'Medical leave', 'approved');
 
 -- ==========================================
 -- PAYROLL TABLE
@@ -72,27 +99,7 @@ CREATE TABLE payroll (
 );
 
 -- ==========================================
--- SAMPLE EMPLOYEES
--- ==========================================
-INSERT INTO employees (id, user_id, first_name, last_name, email, phone, position, department, hire_date, salary, status) VALUES
-(1, 2, 'John', 'Doe', 'john.doe@company.com', '+1234567890', 'Software Engineer', 'IT', '2023-01-15', 60000.00, 'active'),
-(2, NULL, 'Jane', 'Smith', 'jane.smith@company.com', '+1234567891', 'HR Specialist', 'Human Resources', '2023-02-20', 55000.00, 'active'),
-(3, NULL, 'Bob', 'Johnson', 'bob.johnson@company.com', '+1234567892', 'Product Manager', 'Product', '2023-03-10', 75000.00, 'active'),
-(4, NULL, 'Alice', 'Williams', 'alice.williams@company.com', '+1234567893', 'UX Designer', 'Design', '2023-04-05', 58000.00, 'active'),
-(5, NULL, 'Charlie', 'Brown', 'charlie.brown@company.com', '+1234567894', 'Sales Rep', 'Sales', '2023-05-12', 52000.00, 'inactive');
-
--- ==========================================
--- SAMPLE LEAVES
--- ==========================================
-INSERT INTO leaves (employee_id, leave_type, start_date, end_date, reason, status) VALUES
-(1, 'vacation', '2024-03-01', '2024-03-05', 'Family vacation', 'approved'),
-(1, 'sick', '2024-02-10', '2024-02-11', 'Flu', 'approved'),
-(2, 'personal', '2024-03-15', '2024-03-15', 'Personal appointment', 'pending'),
-(3, 'vacation', '2024-04-01', '2024-04-07', 'Spring break', 'pending'),
-(4, 'sick', '2024-02-20', '2024-02-22', 'Medical leave', 'approved');
-
--- ==========================================
--- SAMPLE PAYROLL
+-- INSERT PAYROLL
 -- ==========================================
 INSERT INTO payroll (employee_id, month, year, basic_salary, allowances, deductions, net_salary, payment_date, status) VALUES
 (1, 1, 2024, 60000.00, 5000.00, 2000.00, 63000.00, '2024-01-31', 'paid'),
@@ -100,5 +107,3 @@ INSERT INTO payroll (employee_id, month, year, basic_salary, allowances, deducti
 (3, 1, 2024, 75000.00, 6000.00, 2500.00, 78500.00, '2024-01-31', 'paid'),
 (1, 2, 2024, 60000.00, 5000.00, 2000.00, 63000.00, '2024-02-29', 'paid'),
 (2, 2, 2024, 55000.00, 4000.00, 1500.00, 57500.00, NULL, 'pending');
-
-
