@@ -104,7 +104,7 @@ variable "instance_type" {
 
 variable "ami_id" {
   # Amazon Linux 2023 AMI in us-east-1
-  default = "ami-0c02fb55956c7d316"
+  default = "ami-0c3389a4fa5bddaad"
 }
 
 resource "aws_instance" "public_ec2" {

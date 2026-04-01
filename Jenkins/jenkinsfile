@@ -1,0 +1,96 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Clean workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage("Code") {
+            steps {
+                git branch: 'main', url: 'https://github.com/avinashg0605/Hr_Manager.git'
+            }
+        }
+
+        stage("Build Images") {
+            steps {
+                dir('hr-manager-app/frontend') {
+                    sh "docker build -t fe:${BUILD_NUMBER} ."
+                }
+                dir('hr-manager-app/backend') {
+                    sh "docker build -t be:${BUILD_NUMBER} ."
+                }
+                dir('hr-manager-app/database') {
+                    sh "docker build -t db:${BUILD_NUMBER} ."
+                }
+            }
+        }
+
+        stage('Save Images') {
+            steps {
+                sh "docker save -o be-${BUILD_NUMBER}.tar be:${BUILD_NUMBER}"
+                sh "docker save -o db-${BUILD_NUMBER}.tar db:${BUILD_NUMBER}"
+            }
+        }
+
+        stage('Copy to Remote Server') {
+            steps {
+                sshagent(['ssh-agent']) {
+                    sh """
+                        scp -o StrictHostKeyChecking=no be-${BUILD_NUMBER}.tar ec2-user@10.0.2.204:/home/ec2-user/
+                        scp -o StrictHostKeyChecking=no db-${BUILD_NUMBER}.tar ec2-user@10.0.2.204:/home/ec2-user/
+                    """
+                }
+            }
+        }
+
+        stage('Setup Remote Docker & Load Images') {
+            steps {
+                sshagent(['ssh-agent']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ec2-user@10.0.2.204 << EOF
+                        set -e
+
+                        sudo yum install -y docker
+                        sudo systemctl enable docker
+                        sudo systemctl start docker
+
+                        sudo docker load -i /home/ec2-user/be-${BUILD_NUMBER}.tar
+                        sudo docker load -i /home/ec2-user/db-${BUILD_NUMBER}.tar
+                        EOF
+                    """
+                }
+            }
+        }
+
+        stage('Deploy FE (Local)') {
+            steps {
+                sh "docker rm -f fe || true"
+                sh "docker run -d -p 80:80 --name fe fe:${BUILD_NUMBER}"
+            }
+        }
+
+        stage('Deploy BE & DB (Remote)') {
+            steps {
+                sshagent(['ssh-agent']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ec2-user@10.0.2.204 << EOF
+                        set -e
+
+                        sudo docker rm -f db || true
+                        sudo docker rm -f be || true
+
+                        sudo docker network create hr-network || true
+
+                        sudo docker run -d --name db --network hr-network db:${BUILD_NUMBER}
+                        sudo docker run -d --name be --network hr-network -p 8080:8080 be:${BUILD_NUMBER}
+                        EOF
+                    """
+                }
+            }
+        }
+    }
+}
