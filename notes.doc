@@ -142,3 +142,108 @@ If you want next level:
 ✅ Auto-scaling Jenkins agents
 ✅ ECR-based pipeline (no rebuild duplication)
 ✅ Full production-grade CI/CD architecture
+
+------------------------------------------------------------------------
+
+Good question — this is exactly the kind of thing that trips people up in real deployments.
+
+🧠 Short Answer
+
+Yes — for the remote server, you can run:
+
+sudo usermod -aG docker ec2-user
+
+from Jenkins via SSH.
+
+But there’s an important catch 👇
+
+⚠️ The Gotcha (Very Important)
+
+After running:
+
+usermod -aG docker ec2-user
+
+👉 The change does NOT apply immediately to the current SSH session.
+
+So if you do this inside Jenkins and then run:
+
+docker ps
+
+❌ It may still fail with permission denied.
+
+✅ Recommended Approaches
+✅ Option 1 (Simplest): Just use sudo docker
+
+This is what you're already doing — and it's perfectly fine:
+
+sudo docker run ...
+
+✔ No need to modify user groups
+✔ Works immediately
+✔ Best for CI/CD pipelines
+
+👉 This is the safest and most common approach
+
+✅ Option 2: Add user to docker group (one-time setup)
+
+Run this once manually (or via Jenkins setup stage):
+
+sudo usermod -aG docker ec2-user
+
+Then either:
+
+Log out & log back in
+OR restart the instance
+
+After that:
+
+docker run ...
+
+(no sudo needed)
+
+⚠️ If you try inside Jenkins
+
+Even if you do:
+
+sudo usermod -aG docker ec2-user
+newgrp docker
+
+👉 It usually won’t persist properly in non-interactive SSH sessions.
+
+🚀 Best Practice for Your Pipeline
+
+Keep it simple:
+
+sudo docker ...
+
+✔ No permission issues
+✔ No session problems
+✔ Works reliably in Jenkins
+
+🔥 Pro Tip
+
+If you want cleaner commands without sudo, use:
+
+sudo su - ec2-user -c "docker ps"
+
+But honestly — not necessary.
+
+✅ Final Recommendation
+
+👉 For local Jenkins machine:
+
+sudo usermod -aG docker jenkins
+
+👉 For remote EC2:
+
+Either:
+Run once manually
+OR just use:
+sudo docker ...
+
+✔ I strongly recommend sticking with sudo docker in pipelines.
+
+If you want, I can:
+
+Add a one-time remote setup stage
+Or make your pipeline idempotent (auto-configures server cleanly)
