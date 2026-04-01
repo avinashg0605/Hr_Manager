@@ -41,6 +41,13 @@ resource "aws_security_group" "public_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    description = "Jenkins"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   egress {
     from_port   = 0
@@ -64,6 +71,13 @@ resource "aws_security_group" "private_sg" {
     description     = "SSH from public"
     from_port       = 22
     to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.public_sg.id]
+  }
+  ingress {
+    description     = "Backend-API"
+    from_port       = 3000
+    to_port         = 3000
     protocol        = "tcp"
     security_groups = [aws_security_group.public_sg.id]
   }
