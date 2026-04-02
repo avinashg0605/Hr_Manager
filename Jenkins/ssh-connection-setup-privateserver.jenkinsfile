@@ -15,3 +15,128 @@ pipeline {
         }
     }
 }
+
+
+
+// --------------------------------------------------------------------------------
+
+pipeline {
+    agent any
+    environment {
+        PRIVATE_SERVER_IP = "10.0.2.133"
+        USER_NAME = "ec2-user"
+
+        // Pull credentials from Jenkins
+        DB_HOST = credentials('db_host')
+        DB_USER = credentials('db_user')
+        DB_PASSWORD = credentials('db_password')
+        DB_NAME = credentials('db_name')
+        JWT_SECRET = credentials('jwt_secret')
+        PORT = credentials('port')
+    }
+
+    stages {
+
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage("Checkout Code") {
+            steps {
+                git branch: 'main', url: 'https://github.com/avinashg0605/Hr_Manager.git'
+            }
+        }
+
+        stage("Build Docker Images") {
+            steps {
+                dir('hr-manager-app/frontend') {
+                    sh "docker build -t fe:${BUILD_NUMBER} ."
+                }
+                dir('hr-manager-app/backend') {
+                    sh "docker build -t be:${BUILD_NUMBER} ."
+                }
+                dir('hr-manager-app/database') {
+                    sh "docker build -t db:${BUILD_NUMBER} ."
+                }
+            }
+        }
+
+        stage("Save Images") {
+            steps {
+                sh "docker save -o be-${BUILD_NUMBER}.tar be:${BUILD_NUMBER}"
+                sh "docker save -o db-${BUILD_NUMBER}.tar db:${BUILD_NUMBER}"
+            }
+        }
+
+        stage("Copy Images to Remote Server") {
+            steps {
+                sshagent(['ssh-agent']) {
+                    sh "scp -o StrictHostKeyChecking=no be-${BUILD_NUMBER}.tar ${USER_NAME}@${PRIVATE_SERVER_IP}:/home/ec2-user/"
+                    sh "scp -o StrictHostKeyChecking=no db-${BUILD_NUMBER}.tar ${USER_NAME}@${PRIVATE_SERVER_IP}:/home/ec2-user/"
+                }
+            }
+        }
+
+        stage('Setup Remote Docker & Load Images') {
+            steps {
+                sshagent(['ssh-agent']) {
+                    // Install Docker
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo yum install -y docker'"
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo systemctl enable docker'"
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo systemctl start docker'"
+
+                    // Ensure Docker directory exists
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo mkdir -p /var/lib/docker'"
+
+                    // Load Docker images
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo docker load -i /home/ec2-user/be-${BUILD_NUMBER}.tar'"
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo docker load -i /home/ec2-user/db-${BUILD_NUMBER}.tar'"
+
+                    // Add ec2-user to Docker group (optional)
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo usermod -aG docker ec2-user'"
+                }
+            }
+        }
+
+        stage("Deploy Frontend (Local)") {
+            steps {
+                sh "docker rm -f fe || true"
+                sh "docker run -d -p 80:80 --name fe fe:${BUILD_NUMBER}"
+            }
+        }
+
+        stage("Deploy Backend & Database (Remote)") {
+            steps {
+                sshagent(['ssh-agent']) {
+                    // Remove old containers if exist
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo docker rm -f db || true'"
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo docker rm -f be || true'"
+
+                    // Create network if not exists
+                    sh "ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} 'sudo docker network create hr-network || true'"
+
+                    // Run DB container
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} \\
+                    'sudo docker run -d --name db --network hr-network db:${BUILD_NUMBER}'
+                    """
+
+                    // Run Backend container
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${USER_NAME}@${PRIVATE_SERVER_IP} \\
+                    'sudo docker run -d --name be --network hr-network -p 3000:3000 \\
+                    -e DB_HOST=db \\
+                    -e DB_USER=${DB_USER} \\
+                    -e DB_PASSWORD=${DB_PASSWORD} \\
+                    -e DB_NAME=${DB_NAME} \\
+                    -e PORT=${PORT} \\
+                    -e JWT_SECRET=${JWT_SECRET} \\
+                    be:${BUILD_NUMBER}'
+                    """
+                }
+            }
+        }
+    }
+}

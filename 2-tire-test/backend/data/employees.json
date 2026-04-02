@@ -1,0 +1,60 @@
+{
+  "employees": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "position": "Senior Manager",
+      "department": "Executive",
+      "salary": 85000,
+      "email": "john.doe@example.com",
+      "phone": "+1 234-567-8900",
+      "joinDate": "2023-01-15",
+      "status": "active"
+    },
+    {
+      "id": 2,
+      "name": "Jane Smith",
+      "position": "Team Lead",
+      "department": "Engineering",
+      "salary": 75000,
+      "email": "jane.smith@example.com",
+      "phone": "+1 234-567-8901",
+      "joinDate": "2023-03-20",
+      "status": "active"
+    },
+    {
+      "id": 3,
+      "name": "Mike Johnson",
+      "position": "Software Engineer",
+      "department": "Engineering",
+      "salary": 65000,
+      "email": "mike.johnson@example.com",
+      "phone": "+1 234-567-8902",
+      "joinDate": "2023-06-10",
+      "status": "active"
+    },
+    {
+      "id": 4,
+      "name": "Sarah Williams",
+      "position": "HR Manager",
+      "department": "Human Resources",
+      "salary": 70000,
+      "email": "sarah.williams@example.com",
+      "phone": "+1 234-567-8903",
+      "joinDate": "2023-02-05",
+      "status": "active"
+    },
+    {
+      "id": 5,
+      "name": "Robert Brown",
+      "position": "Product Manager",
+      "department": "Product",
+      "salary": 80000,
+      "email": "robert.brown@example.com",
+      "phone": "+1 234-567-8904",
+      "joinDate": "2023-04-12",
+      "status": "active"
+    }
+  ],
+  "nextId": 6
+}
